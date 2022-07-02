@@ -11,9 +11,6 @@
 #include "mydef.hpp"
 #include "unit.hpp"
 
-//#include "ansi.hpp"
-
-
 namespace RISC_V {
 class CPU {
   Register reg_prev{}, reg_next{};
@@ -26,7 +23,7 @@ class CPU {
   Clock time{};
   IntALU int_alu;
   AddrALU addr_alu;
-  uint32_t pc;
+  uint32_t pc = 0;
 //-----------------------
   Wire<FetchToIssue> fetch_to_issue;
   //----------------------
@@ -59,7 +56,6 @@ class CPU {
   bool if_clear_regfile = false;
 
   int cycle = 0;
-
 
   void PrintStall() {
     std::cout << "### cycle = " << cycle << std::endl;

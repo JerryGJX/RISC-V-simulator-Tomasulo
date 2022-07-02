@@ -30,6 +30,7 @@ class Decoder {
           case 0b101: return BGE;
           case 0b110: return BLTU;
           case 0b111: return BGEU;
+          default:return WRONG;
         }
       }
       case 0b0000011: {
@@ -39,6 +40,7 @@ class Decoder {
           case 0b010: return LW;
           case 0b100: return LBU;
           case 0b101: return LHU;
+          default:return WRONG;
         }
       }
       case 0b0100011: {
@@ -46,6 +48,7 @@ class Decoder {
           case 0b000: return SB;
           case 0b001: return SH;
           case 0b010: return SW;
+          default:return WRONG;
         }
       }
       case 0b0010011: {
@@ -58,6 +61,7 @@ class Decoder {
           case 0b111: return ANDI;
           case 0b001: return SLLI;
           case 0b101: return (func7 != 0) ? SRAI : SRLI;
+          default:return WRONG;
         }
       }
       case 0b0110011: {
@@ -70,6 +74,7 @@ class Decoder {
           case 0b101: return (func7 != 0) ? SRA : SRL;
           case 0b110: return OR;
           case 0b111: return AND;
+          default:return WRONG;
         }
       }
       default:return WRONG;
