@@ -14,7 +14,7 @@ namespace RISC_V {
 static constexpr uint32_t RAM_LIMIT = 500000;
 static constexpr int loadStoreTime = 3, calTime = 0;
 static constexpr uint32_t REG_SIZE = 32, MEM_SIZE = 5e5, RS_SIZE = 32,
-    ROB_SIZE = 32, SLB_SIZE = 32, FQ_SIZE = 32;//load_buffer,store_buffer
+    ROB_SIZE = 32, SLB_SIZE = 32, FQ_SIZE = 8;//load_buffer,store_buffer
 
 
 enum opType {
