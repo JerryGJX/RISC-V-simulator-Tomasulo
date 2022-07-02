@@ -121,7 +121,7 @@ class Decoder {
  public:
   inline static uint32_t getPart(uint32_t ins, int high, int low) {
     if (high == 31)return ins >> low;
-    return (ins & (1 << (high + 1)) - 1) >> low;
+    return (ins & (1u << (high + 1)) - 1) >> low;
   }
 
   inline static uint32_t Sext(uint32_t ins, int32_t top) {
