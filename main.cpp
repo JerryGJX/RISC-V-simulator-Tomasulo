@@ -6,13 +6,13 @@ int main() {
 
 //  freopen("../test/testcases/tak.data", "r", stdin);
   //freopen("../test/my_test/tomasulo/sample.ans", "w", stdout);
-  try {
+//  try {
     cpu.scan();
     cpu.run();
-  }
-  catch (Error &get_error) {
-    std::cerr << get_error.what() << std::endl;
-  }
+//  }
+//  catch (Error &get_error) {
+//    std::cerr << get_error.what() << std::endl;
+//  }
 
 
   //std::cout << "Hello, World!" << std::endl;

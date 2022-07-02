@@ -15,7 +15,7 @@
 //}
 
 RISC_V::regUnit RISC_V::Register::Read(uint32_t pos) {
-  if (pos > REG_SIZE)throw Error("REG Read exceed");
+  //if (pos > REG_SIZE)throw Error("REG Read exceed");
   return reg[pos];
 }
 void RISC_V::Register::Write(uint32_t pos, RISC_V::regUnit regu_ca) {
@@ -102,15 +102,15 @@ bool RISC_V::ROB::Empty() {
   return val.empty();
 }
 RISC_V::ROBUnit &RISC_V::ROB::Front() {
-  if (val.empty())throw Error("ROB is empty");
+  //if (val.empty())throw Error("ROB is empty");
   return val.front();
 }
 void RISC_V::ROB::PopFront() {
-  if (val.empty())throw Error("ROB is empty");
+  //if (val.empty())throw Error("ROB is empty");
   val.popFront();
 }
 uint32_t RISC_V::ROB::PushBack(const RISC_V::ROBUnit &value) {
-  if (val.full())throw Error("ROB is full");
+  //if (val.full())throw Error("ROB is full");
   return val.pushBack(value);
 }
 void RISC_V::ROB::Clear() {
@@ -152,15 +152,15 @@ bool RISC_V::storeLoadBuffer::Empty() {
   return val.empty();
 }
 RISC_V::SLBUnit &RISC_V::storeLoadBuffer::Front() {
-  if (val.empty())throw Error("SLB is empty visit");
+  //if (val.empty())throw Error("SLB is empty visit");
   return val.front();
 }
 void RISC_V::storeLoadBuffer::PopFront() {
-  if (val.empty())throw Error("SLB is empty pop");
+  //if (val.empty())throw Error("SLB is empty pop");
   val.popFront();
 }
 uint32_t RISC_V::storeLoadBuffer::PushBack(const RISC_V::SLBUnit &value) {
-  if (val.full())throw Error("SLB is full");
+  //if (val.full())throw Error("SLB is full");
   return val.pushBack(value);
 }
 void RISC_V::storeLoadBuffer::Clear() {
@@ -188,15 +188,15 @@ bool RISC_V::fetchQueue::Empty() {
   return val.empty();
 }
 RISC_V::fqUnit &RISC_V::fetchQueue::Front() {
-  if (val.empty())throw Error("FQ is empty");
+  //if (val.empty())throw Error("FQ is empty");
   return val.front();
 }
 void RISC_V::fetchQueue::PopFront() {
-  if (val.empty())throw Error("SLB is empty");
+  //if (val.empty())throw Error("SLB is empty");
   val.popFront();
 }
 uint32_t RISC_V::fetchQueue::PushBack(const RISC_V::fqUnit &value) {
-  if (val.full())throw Error("FQ is full");
+  //if (val.full())throw Error("FQ is full");
   return val.pushBack(value);
 }
 void RISC_V::fetchQueue::Clear() {
