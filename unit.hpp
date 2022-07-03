@@ -46,7 +46,7 @@ class loopQueue {
     return size() == 0;
   }
   bool full() {
-    return size() >= len;
+    return size() >= len - 1;
   }
 
 };
