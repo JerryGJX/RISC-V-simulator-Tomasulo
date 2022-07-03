@@ -52,8 +52,9 @@ void RISC_V::Register::PrintReg() {
 //  for (int i = 0; i < 32; i++) std::cout << (int32_t) reg[i].value << "\t";
 //  std::cout << std::endl;
   puts("Register:");
-  for (int i = 0; i < 32; ++i) {
-    printf("%6d,%d ", reg[i].value, reg[i].rob_id);
+  for (int i = 0; i < REG_SIZE; ++i) {
+    printf("%6d", reg[i].value);
+//    printf("%6d,%d ", reg[i].value, reg[i].rob_id);
     if (i && i % 8 == 7) puts("");
   }
 }
@@ -117,15 +118,18 @@ void RISC_V::ROB::Clear() {
   val.clear();
 }
 void RISC_V::ROB::PrintRob() {
-  std::cout << "rob_size= " << val.size() << std::endl;
+  //std::cout << "rob_size= " << val.size() << std::endl;
 
   for (int i = val.head; i < val.tail; i++) {
-    std::cout << "rob_id= " << i << "\t" << std::endl;
+    //std::cout << "rob_id= " << i << "\t" << std::endl;
     std::cout << "ready: " << ((val[i].ready) ? "true" : "false") << std::endl;
     std::cout << val[i].ins << std::endl;
     std::cout << "#reg_id= " << val[i].reg_id << "\t#rs_id= " << val[i].rs_id << "\t#slb_id= " << val[i].slb_id
               << std::endl;
     std::cout << "#present_pc= " << val[i].present_pc << std::endl;
+
+    std::cout << "init_jump: " << ((val[i].init_jump) ? "true" : "false") << std::endl;
+
     val[i].result.PrintExResult();
     std::cout << std::endl;
   }

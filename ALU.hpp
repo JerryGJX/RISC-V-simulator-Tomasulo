@@ -138,6 +138,7 @@ struct AddrALU {
         ram_.Write(v1_ + imm + 3, (uint8_t) (v2_ >> 24));
         break;
       }
+      default: break;
     }
     return result;
   }

@@ -96,6 +96,14 @@ class CPU {
     std::cout << std::endl;
   }
 
+  struct BranchPredictor {
+    bool strength = false, if_jump = false;
+
+    std::pair<bool, uint32_t> ifJump(opType op_type_, uint32_t now_pc, uint32_t imm_);
+
+    void UpDateStatus(bool real_jump_);
+  } predictor{};
+
  public:
   CPU() = default;
 

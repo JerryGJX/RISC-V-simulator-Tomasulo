@@ -15,7 +15,7 @@ void RISC_V::CPU::scan() {
     }
     for (int i = 0; i < str_ca.size(); i += 3) {
       std::string Byte = str_ca.substr(i, 2);
-      ram[start_pos] = std::stoi(Byte, nullptr, 16);;
+      ram[start_pos] = std::stoi(Byte, nullptr, 16);
 //      std::cout << "startPos = " << start_pos << " ## " << std::hex << ram.Read8(start_pos) << std::endl;
 //      printf("pos: %d, mem: %02X\n", start_pos, ram[start_pos]);
       start_pos++;
@@ -35,6 +35,8 @@ void RISC_V::CPU::run() {
 //    PrintStall();
 
     cycle++;
+
+//    if (cycle == 200)break;
 //    std::cout << "[" << cycle << "]" << std::endl;
 
     run_rob();
@@ -74,19 +76,25 @@ void RISC_V::CPU::run_inst_fetch_queue() {
     return;
   }
   if (!fq_next.FUll()) {
-    fqUnit ins_ca = {ram.Read32(pc), pc};
-    fq_next.PushBack(ins_ca);
-    pc += 4;
+    Instruction ins_ca;
+    RISC_V::Decoder::decode(ram.Read32(pc), ins_ca);
+    fqUnit fq_ca = {ins_ca, pc};
+    std::pair<bool, uint32_t> branch_predict = predictor.ifJump(ins_ca.op_type, pc, ins_ca.imm);
+    fq_ca.init_jump = branch_predict.first;
+    pc = branch_predict.second;
+    fq_next.PushBack(fq_ca);
+//    pc += 4;--
   }
   if (!issue_to_fetch.stall) {
     if (fq_prev.Size() > 1) {
-      fetch_to_issue.val = {fq_prev[fq_prev.val.head + 1].origin_ins, fq_prev[fq_prev.val.head + 1].pc};
+      fetch_to_issue.val = {fq_prev[fq_prev.val.head + 1].ins, fq_prev[fq_prev.val.head + 1].pc,
+                            fq_prev[fq_prev.val.head + 1].init_jump};
       fetch_to_issue.stall = false;
     }
     fq_next.PopFront();
   } else {
     if (!fq_prev.Empty()) {
-      fetch_to_issue.val = {fq_prev.Front().origin_ins, fq_prev.Front().pc};
+      fetch_to_issue.val = {fq_prev.Front().ins, fq_prev.Front().pc, fq_prev.Front().init_jump};
       fetch_to_issue.stall = false;
     }
   }
@@ -112,9 +120,8 @@ void RISC_V::CPU::run_issue() {
   issue_to_regfile.stall = true;
 
   if (!fetch_to_issue.stall) {
-    Instruction ins_ca;
-    RISC_V::Decoder::decode(fetch_to_issue.val.origin_ins, ins_ca);
-    uint32_t opcode = Decoder::getPart(fetch_to_issue.val.origin_ins, 6, 0);
+    Instruction ins_ca = fetch_to_issue.val.ins;
+    uint32_t opcode = ins_ca.opcode;
     uint32_t rob_id = 0, slb_id = UINT32_MAX, rs_id = UINT32_MAX;
     if (!rob_next.Full()) {
 
@@ -128,7 +135,7 @@ void RISC_V::CPU::run_issue() {
             issue_to_slb.stall = false;
             slb_id = slb_prev.val.tail;
             issue_to_slb.val = {ins_ca, rob_id, RISC_V::loadStoreTime};
-            issue_to_rob.val = {ins_ca, ins_ca.rd, 0, slb_id, false, fetch_to_issue.val.pc, 0};
+            issue_to_rob.val = {ins_ca, ins_ca.rd, 0, slb_id, fetch_to_issue.val.pc, fetch_to_issue.val.init_jump};
 
             if (opcode == 0b0000011 && ins_ca.rd != 0) {
               issue_to_regfile.val = {ins_ca.rd, rob_id};
@@ -143,7 +150,7 @@ void RISC_V::CPU::run_issue() {
             issue_to_rs.stall = false;
 
             issue_to_rs.val = {ins_ca, RISC_V::calTime, fetch_to_issue.val.pc, rs_id, rob_id};
-            issue_to_rob.val = {ins_ca, ins_ca.rd, rs_id, 0, false, fetch_to_issue.val.pc, 0};
+            issue_to_rob.val = {ins_ca, ins_ca.rd, rs_id, 0, fetch_to_issue.val.pc, fetch_to_issue.val.init_jump};
 
             if (opcode != 0b1100011 && ins_ca.rd != 0) {
               issue_to_regfile.val = {ins_ca.rd, rob_id};
@@ -170,7 +177,6 @@ void RISC_V::CPU::run_regfile() {
     return;
   }
 
-  // commit_to_regfile.stall = true;
   if (!issue_to_regfile.stall) {
     reg_next.WriteRobId(issue_to_regfile.val.rd, issue_to_regfile.val.rob_id);
   }
@@ -183,9 +189,6 @@ void RISC_V::CPU::run_reservation() {
     return;
   }
   if (!issue_to_rs.stall) {
-    //auto &val_ca = issue_to_rs.val;
-//    auto &rs1 = val_ca.ins.rs1;
-//    auto &rs2 = val_ca.ins.rs2;
     auto &target_rs_unit = rs_next[issue_to_rs.val.rs_id];
     target_rs_unit = {true, issue_to_rs.val.ins, RISC_V::calTime, issue_to_rs.val.pc};
     target_rs_unit.rob_id = issue_to_rs.val.rob_id;
@@ -407,7 +410,7 @@ void RISC_V::CPU::run_rob() {
   if (!issue_to_rob.stall) {
     ROBUnit new_issue = {false, issue_to_rob.val.ins, issue_to_rob.val.reg_id,
                          issue_to_rob.val.rs_id, issue_to_rob.val.slb_id,
-                         issue_to_rob.val.present_pc};
+                         issue_to_rob.val.present_pc, issue_to_rob.val.init_jump};
     rob_next.PushBack(new_issue);
   }
 
@@ -424,7 +427,8 @@ void RISC_V::CPU::run_rob() {
   rob_to_commit.stall = true;
   if (!rob_prev.Empty() && rob_prev.Front().ready) {
     const ROBUnit &front = rob_prev.Front();
-    rob_to_commit.val = {front.ins, front.reg_id, static_cast<uint32_t>(rob_prev.val.head), front.slb_id, front.result};
+    rob_to_commit.val = {front.ins, front.reg_id, static_cast<uint32_t>(rob_prev.val.head), front.slb_id, front.result,
+                         front.init_jump, front.present_pc};
     rob_to_commit.stall = false;
     rob_next.PopFront();
   }
@@ -440,11 +444,22 @@ void RISC_V::CPU::run_commit() {
       commit_to_regfile.stall = false;
       commit_to_regfile.val = {rob_to_commit.val.ins.rd, rob_to_commit.val.result.value, rob_to_commit.val.rob_id};
     }
-    if ((insType == B_type || rob_to_commit.val.ins.op_type == JAL || rob_to_commit.val.ins.op_type == JALR)
-        && rob_to_commit.val.result.jump) {
-      if_clear_fq = if_clear_rob = if_clear_rs = if_clear_slb = if_clear_regfile = true;
-      pc = rob_to_commit.val.result.pc;
+//    if ((insType == B_type || rob_to_commit.val.ins.op_type == JAL || rob_to_commit.val.ins.op_type == JALR)
+//        && rob_to_commit.val.result.jump) {
+//      if_clear_fq = if_clear_rob = if_clear_rs = if_clear_slb = if_clear_regfile = true;
+//      pc = rob_to_commit.val.result.pc;
+//    }
+    if ((insType == B_type || rob_to_commit.val.ins.op_type == JAL || rob_to_commit.val.ins.op_type == JALR)) {
+      predictor.UpDateStatus(rob_to_commit.val.result.jump);
+      if (rob_to_commit.val.result.jump && !rob_to_commit.val.init_jump) {
+        if_clear_fq = if_clear_rob = if_clear_rs = if_clear_slb = if_clear_regfile = true;
+        pc = rob_to_commit.val.result.pc;
+      } else if (!rob_to_commit.val.result.jump && rob_to_commit.val.init_jump) {
+        if_clear_fq = if_clear_rob = if_clear_rs = if_clear_slb = if_clear_regfile = true;
+        pc = rob_to_commit.val.now_pc + 4;
+      }
     }
+
     if (insType == S_type) {
       commit_to_slb.stall = false;
       commit_to_slb.val = {rob_to_commit.val.slb_id};
@@ -465,4 +480,68 @@ void RISC_V::CPU::update() {
   slb_to_slb_prev = slb_to_slb_next;
   slb_to_rs_prev = slb_to_rs_next;
   slb_to_rob_prev = slb_to_rob_next;
+}
+
+std::pair<bool, uint32_t> RISC_V::CPU::BranchPredictor::ifJump(RISC_V::opType op_type_,
+                                                               uint32_t now_pc,
+                                                               uint32_t imm_) {
+  if (now_pc + imm_ >= 5e5)return std::make_pair(false, now_pc + 4);;
+  switch (op_type_) {
+    case AUIPC:
+    case JAL: return std::make_pair(true, now_pc + imm_);
+    case BEQ:
+    case BNE:
+    case BLT:
+    case BGE:
+    case BLTU:
+    case BGEU: {
+      if (if_jump)return std::make_pair(true, now_pc + imm_);
+      else return std::make_pair(false, now_pc + 4);
+    }
+    case LUI:
+    case JALR:
+    case LB:
+    case LH:
+    case LW:
+    case LBU:
+    case LHU:
+    case SB:
+    case SH:
+    case SW:
+    case ADDI:
+    case SLTI:
+    case SLTIU:
+    case XORI:
+    case ORI:
+    case ANDI:
+    case SLLI:
+    case SRLI:
+    case SRAI:
+    case ADD:
+    case SUB:
+    case SLL:
+    case SLT:
+    case SLTU:
+    case XOR:
+    case SRL:
+    case SRA:
+    case OR:
+    case AND:
+    case WRONG:return std::make_pair(false, now_pc + 4);
+  }
+}
+void RISC_V::CPU::BranchPredictor::UpDateStatus(bool real_jump_) {
+  if (real_jump_) {
+    if (if_jump)strength = true;
+    else {
+      if (!strength)if_jump = true;
+      else strength = false;
+    }
+  } else {
+    if (!if_jump)strength = true;
+    else {
+      if (!strength)if_jump = false;
+      else strength = false;
+    }
+  }
 }

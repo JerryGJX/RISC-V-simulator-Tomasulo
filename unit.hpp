@@ -104,6 +104,7 @@ struct ROBUnit {
   uint32_t reg_id = UINT32_MAX, rs_id = UINT32_MAX, slb_id = UINT32_MAX;
 //  bool jump = false;//是否为跳转语句
   uint32_t present_pc = 0;
+  bool init_jump = false;
   ExecuteResult result;
   ROBUnit &operator=(const ROBUnit &rhs) = default;
 };
@@ -147,7 +148,10 @@ struct storeLoadBuffer {
 };
 //----------Instruction Queue---------
 struct fqUnit {
-  uint32_t origin_ins = 0, pc = 0;
+  Instruction ins{};
+  uint32_t pc = 0;//该指令对应的pc
+  //---predict
+  bool init_jump = false;
 };
 struct fetchQueue {
   loopQueue<fqUnit, FQ_SIZE> val;
@@ -171,7 +175,10 @@ struct Wire {
 
 //--------fetch--------------
 struct FetchToIssue {
-  uint32_t origin_ins = 0, pc = 0;
+  Instruction ins{};
+  uint32_t pc = 0;
+  //---predict
+  bool init_jump = false;
 };
 
 //---------issue-------------
@@ -184,8 +191,10 @@ struct IssueToRegfile {
 struct IssueToRob {
   Instruction ins{};
   uint32_t reg_id = UINT32_MAX, rs_id = UINT32_MAX, slb_id = UINT32_MAX;
-  bool jump = false;//是否为跳转语句
-  uint32_t present_pc = 0, next_pc = 0;
+  //bool jump = false;//是否为跳转语句
+  uint32_t present_pc = 0;
+//---predict
+  bool init_jump = false;
   IssueToRob &operator=(const IssueToRob &rhs) = default;
 };
 
@@ -262,6 +271,10 @@ struct RobToCommit {
   Instruction ins{};
   uint32_t reg_id = 0, rob_id = 0, slb_id = 0;
   ExecuteResult result{};
+
+  //---predict
+  bool init_jump = false;
+  uint32_t now_pc = 0;
 };
 
 }
