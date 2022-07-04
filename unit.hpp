@@ -18,6 +18,7 @@ class loopQueue {
   int tail = 1;
   int head = 1;
   T que[len];
+  T blackHole;
  public:
   T &operator[](uint32_t pos) {
     return que[pos % len];

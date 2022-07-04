@@ -36,7 +36,11 @@ void RISC_V::CPU::run() {
 
     cycle++;
 
-//    if (cycle == 200)break;
+//    if (cycle == 466) {
+//      uint32_t A = cycle;
+//    }
+
+//    if (cycle == 2000)break;
 //    std::cout << "[" << cycle << "]" << std::endl;
 
     run_rob();
@@ -57,6 +61,8 @@ void RISC_V::CPU::run() {
 
     if (!rob_to_commit.stall && rob_to_commit.val.ins.origin_code == 0x0ff00513) {
       printf("%d", reg_prev.Read(10).value & 255u);
+
+      predictor.Print();
       break;
     }
   }
@@ -358,7 +364,7 @@ void RISC_V::CPU::run_slbuffer() {
 
   slb_to_rob_next.stall = true, slb_to_rs_next.stall = true, slb_to_slb_next.stall = true;
   if (!slb_prev.Empty()) {
-    const SLBUnit &front_ca = slb_prev.Front();
+    SLBUnit &front_ca = slb_prev.Front();
     if (front_ca.ins.opcode == 0b0000011) {//load
       if (front_ca.Qi == 0) {
         if (front_ca.time == 1) {
@@ -450,11 +456,14 @@ void RISC_V::CPU::run_commit() {
 //      pc = rob_to_commit.val.result.pc;
 //    }
     if ((insType == B_type || rob_to_commit.val.ins.op_type == JAL || rob_to_commit.val.ins.op_type == JALR)) {
-      predictor.UpDateStatus(rob_to_commit.val.result.jump);
+      predictor.UpDateStatus(rob_to_commit.val.result.jump, rob_to_commit.val.now_pc);
+      if (insType == B_type)predictor.all_jump++;
       if (rob_to_commit.val.result.jump && !rob_to_commit.val.init_jump) {
+        if (insType == B_type)predictor.fail_predict++;
         if_clear_fq = if_clear_rob = if_clear_rs = if_clear_slb = if_clear_regfile = true;
         pc = rob_to_commit.val.result.pc;
       } else if (!rob_to_commit.val.result.jump && rob_to_commit.val.init_jump) {
+        if (insType == B_type)predictor.fail_predict++;
         if_clear_fq = if_clear_rob = if_clear_rs = if_clear_slb = if_clear_regfile = true;
         pc = rob_to_commit.val.now_pc + 4;
       }
@@ -485,10 +494,12 @@ void RISC_V::CPU::update() {
 std::pair<bool, uint32_t> RISC_V::CPU::BranchPredictor::ifJump(RISC_V::opType op_type_,
                                                                uint32_t now_pc,
                                                                uint32_t imm_) {
-  if (now_pc + imm_ >= 5e5)return std::make_pair(false, now_pc + 4);;
+  if (now_pc + imm_ >= 5e5)return std::make_pair(false, now_pc + 4);
   switch (op_type_) {
     case AUIPC:
-    case JAL: return std::make_pair(true, now_pc + imm_);
+    case JAL: {
+      return std::make_pair(true, now_pc + imm_);
+    }
     case BEQ:
     case BNE:
     case BLT:
@@ -544,4 +555,10 @@ void RISC_V::CPU::BranchPredictor::UpDateStatus(bool real_jump_) {
       else strength = false;
     }
   }
+}
+std::pair<bool, uint32_t> RISC_V::CPU::PredictorGroup::ifJump(RISC_V::opType op_type_, uint32_t now_pc, uint32_t imm_) {
+  return pred[(now_pc >> 2) % 4096].ifJump(op_type_, now_pc, imm_);
+}
+void RISC_V::CPU::PredictorGroup::UpDateStatus(bool real_jump_, uint32_t now_pc) {
+  pred[(now_pc >> 2) % 4096].UpDateStatus(real_jump_);
 }

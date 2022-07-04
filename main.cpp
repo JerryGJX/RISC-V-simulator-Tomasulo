@@ -4,8 +4,8 @@
 int main() {
   RISC_V::CPU cpu;
 
-//  freopen("../test/testcases/pi.data", "r", stdin);
-  //freopen("../test/my_test/tomasulo/sample.ans", "w", stdout);
+  freopen("../test/testcases/array_test1.data", "r", stdin);
+//  freopen("../test/my_test/tomasulo/sample.ans", "w", stdout);
 //  try {
     cpu.scan();
     cpu.run();

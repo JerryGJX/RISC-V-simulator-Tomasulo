@@ -10,6 +10,7 @@
 #include "Clock.hpp"
 #include "mydef.hpp"
 #include "unit.hpp"
+#include <iomanip>
 
 namespace RISC_V {
 class CPU {
@@ -102,7 +103,24 @@ class CPU {
     std::pair<bool, uint32_t> ifJump(opType op_type_, uint32_t now_pc, uint32_t imm_);
 
     void UpDateStatus(bool real_jump_);
-  } predictor{};
+  };
+  struct PredictorGroup{
+    int fail_predict = 0, all_jump = 0;
+
+    BranchPredictor pred[4096];
+
+    std::pair<bool, uint32_t> ifJump(opType op_type_, uint32_t now_pc, uint32_t imm_);
+
+    void UpDateStatus(bool real_jump_,uint32_t now_pc);
+
+    void Print() const {
+//      std::cout << "fail_predict= " << fail_predict << std::endl;
+      std::cerr << all_jump << " | " << all_jump - fail_predict << " | ";
+      float rate = (all_jump == 0) ? 1 : (float) 1 - (float) fail_predict / (float) all_jump;
+      std::cerr << setiosflags(std::ios::fixed) << std::setprecision(2);
+      std::cerr << rate * 100<<"%" << std::endl;
+    }
+  }predictor;
 
  public:
   CPU() = default;
