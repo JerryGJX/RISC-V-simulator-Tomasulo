@@ -1,7 +1,8 @@
 # RISC-V-simulator-Tomasulo
 A simple CPU simulator with Tomasulo
 
-
+## 逻辑图
+![tomasulo_frame](images/tomasulo_frame.jpg)
 
 ## 关于分支预测
 
